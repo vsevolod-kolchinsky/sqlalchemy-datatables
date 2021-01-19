@@ -23,7 +23,9 @@ class DataTables:
     :returns: a DataTables object
     """
 
-    def __init__(self, request, query, columns, allow_regex_searches=False):
+    def __init__(
+        self, request, query, columns, allow_regex_searches=False, escape=None
+    ):
         """Initialize object and run the query."""
         self.params = dict(request)
         if "sEcho" in self.params:
@@ -32,6 +34,9 @@ class DataTables:
         self.columns = columns
         self.results = None
         self.allow_regex_searches = allow_regex_searches
+
+        # callable to escape data
+        self.escape = escape or self.default_escape
 
         # total in the table after filtering
         self.cardinality_filtered = 0
@@ -46,6 +51,11 @@ class DataTables:
             self.run()
         except Exception as exc:
             self.error = str(exc)
+
+    def default_escape(self, data):
+        """Escape data before output."""
+        # do nothing by default
+        return data
 
     def output_result(self):
         """Output results in the format needed by DataTables."""
@@ -132,7 +142,7 @@ class DataTables:
             col.mData if col.mData else str(i) for i, col in enumerate(self.columns)
         ]
         self.results = [
-            {k: v for k, v in zip(column_names, row)} for row in query.all()
+            {k: self.escape(v) for k, v in zip(column_names, row)} for row in query.all()
         ]
 
     def _set_column_filter_expressions(self):
